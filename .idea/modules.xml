@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$USER_HOME$/PycharmProjects/API_estudo/.idea/API_estudo.iml" filepath="$USER_HOME$/PycharmProjects/API_estudo/.idea/API_estudo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Projeto Pulmão.iml" filepath="$PROJECT_DIR$/.idea/Projeto Pulmão.iml" />
+      <module fileurl="file://$USER_HOME$/PycharmProjects/engenharia_medica/.idea/engenharia_medica.iml" filepath="$USER_HOME$/PycharmProjects/engenharia_medica/.idea/engenharia_medica.iml" />
+    </modules>
+  </component>
+</project>
