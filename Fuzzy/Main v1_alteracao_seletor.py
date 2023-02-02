@@ -1,4 +1,5 @@
 from matplotlib import use
+
 use('Agg')
 use('TkAgg')
 
@@ -39,7 +40,8 @@ class Layer_selector(tkinter.Frame):
         self.slider.pack(side=tkinter.BOTTOM)
 
         self.switch = tkinter.Checkbutton(self.master, text="Select ROI", variable=self.switch_variable,
-                                          indicatoron=False, onvalue=False, offvalue=True, width=8, command=self.toggle_selector)
+                                          indicatoron=False, onvalue=False, offvalue=True, width=8,
+                                          command=self.toggle_selector)
 
         self.switch.pack(side=tkinter.BOTTOM)
 
@@ -142,23 +144,38 @@ def kernel_circular(raio):
         for j in range(kernel.shape[1]):
             for k in range(kernel.shape[2]):
                 if kernel[i, j, k] == 1:
-
                     raio_atual = np.sqrt(np.sum(np.power(np.array([i, j, k]) - kernel_center, 2)))
                     print(np.array([i, j, k]), kernel_center, raio_atual, 1 / raio_atual if raio_atual > 0 else 1)
                     kernel_out[i, j, k] = 1 / raio_atual if raio_atual > 0 else 1
 
     return kernel_out
 
-def get_something_using_circular_kernel(img_kernel, center, raio):
-    # to do something on the image
-    kernel = sk.morphology.disk(raio)
 
-    # uma amostra "circular" da imagem
-    # pode afetar operaçõpes com histograma, por exemplo, pois mantém zeros que não são da imagem, eles são reusltados da multiplicação pelo ‘kernel’, sãoa s brodas do ‘kernel’
-    img_to_work_with = kernel * img_kernel[center[0]-raio:center[0]+raio+1, center[1]-raio:center[1]+raio+1]
+def afinidade_batt(img_kernel, seed_index, pixel_index, kernel, raio):
+    img_sampple_centered_in_seed = img_kernel[
+                                        seed_index[0] - raio:seed_index[0] + raio + 1,
+                                        seed_index[1] - raio:seed_index[1] + raio + 1,
+                                        seed_index[2] - raio:seed_index[2] + raio + 1
+                                   ] * kernel
 
-    # faz o que quiser com a imagem agora
-    return 0
+    img_sample_centered_in_pixel = img_kernel[
+                                       pixel_index[0] - raio:pixel_index[0] + raio + 1,
+                                       pixel_index[1] - raio:pixel_index[1] + raio + 1,
+                                       pixel_index[2] - raio:pixel_index[2] + raio + 1
+                                   ] * kernel
+
+    histogram_seed, bin_seed = np.histogram(img_sampple_centered_in_seed, bins=256, range=(0, 1))
+    histogram_seed = (histogram_seed * bin_seed[:-1]) / (histogram_seed * bin_seed[:-1]).sum()
+
+    histogram_pixel, bin_pixel = np.histogram(img_sample_centered_in_pixel, bins=256, range=(0, 1))
+    histogram_pixel = (histogram_pixel * bin_pixel[:-1]) / (histogram_pixel * bin_pixel[:-1]).sum()
+
+    h1 = histogram_seed
+    h2 = (h1 + histogram_pixel) / 2
+
+    ro = np.sum(np.sqrt(h1 * h2))
+
+    return ro
 
 
 # Importando imagens como uint16 e transformando em float --------------------------------------------------------------
@@ -180,7 +197,8 @@ gs = gs.astype(float)
 # plt.show()
 
 # Selecionando região de interesse -------------------------------------------------------------------------------------
-print("---------------------------------------Selecionando região de interesse-----------------------------------------")
+print(
+    "---------------------------------------Selecionando região de interesse-----------------------------------------")
 root = tkinter.Tk()
 root.geometry('700x700')
 root.title('Projeto Imagens Biomédicas 2021')
@@ -189,20 +207,23 @@ app.mainloop()
 print("Exited!")
 
 # Pré segmentação do pulmão --------------------------------------------------------------------------------------------
-print("----------------------------------------Pré segmentação do pulmão-----------------------------------------------")
+print(
+    "----------------------------------------Pré segmentação do pulmão-----------------------------------------------")
 lung = isola_pulmao_v2(img)
 lung = lung / lung.max()
 lung = lung.astype(float)
 
 # Criando matrizes auxiliares (conectividade local e global, afinidade e ex seeds) -------------------------------------
-print("----------------Criando matrizes auxiliares (conectividade local e global, afinidade e ex seeds)----------------")
+print(
+    "----------------Criando matrizes auxiliares (conectividade local e global, afinidade e ex seeds)----------------")
 connect = np.zeros_like(img)
 afinit = np.zeros_like(img)
 pathConnect = np.zeros_like(img)
 exSeeds = np.zeros_like(img)
 
 # Ajuste de intesidade para melhorar contraste -------------------------------------------------------------------------
-print("----------------------------------Ajuste de intesidade para melhorar contraste----------------------------------")
+print(
+    "----------------------------------Ajuste de intesidade para melhorar contraste----------------------------------")
 hist = skimage.exposure.histogram(img)
 # plt.stem(hist[1][1:], hist[0][1:])
 # plt.show()
@@ -225,7 +246,8 @@ img = skimage.exposure.rescale_intensity(img, in_range=(hist[1][lim[0]], hist[1]
 # plt.show()
 
 # Selecionando região de interesse -------------------------------------------------------------------------------------
-print("----------------------------------------Selecionando região de interesse-----------------------------------------")
+print(
+    "----------------------------------------Selecionando região de interesse-----------------------------------------")
 sliceNod = app.layer
 Cmin, Cmax, Lmin, Lmax = app.ROI
 # plt.imshow(img[Lmin:Lmax, Cmin:Cmax, sliceNod])
@@ -239,7 +261,8 @@ connect[L, C, sliceNod] = 1
 afinit[L, C, sliceNod] = 1
 
 # Inicio da fila e calculo dos valores de media e desvio da intesidade e homogeneidade ---------------------------------
-print("--------------Inicio da fila e calculo dos valores de media e desvio da intesidade e homogeneidade--------------")
+print(
+    "--------------Inicio da fila e calculo dos valores de media e desvio da intesidade e homogeneidade--------------")
 fila = [((L, C, sliceNod), connect[L, C, sliceNod])]
 regiao = img[Lmin:Lmax, Cmin:Cmax, sliceNod]
 I = abs(regiao + np.ones_like(regiao) * seed0)
@@ -251,7 +274,10 @@ stdI = np.std(0.5 * I) + 1e-9
 cont = 0
 
 # Iterações ------------------------------------------------------------------------------------------------------------
-while len(fila) != 0 and fila[0][1] > 0.5 and exSeeds.sum() < 10 * (Cmax - Cmin)*(Lmax - Lmin)**2:
+raio = 2
+kernel = kernel_circular(raio)
+
+while len(fila) != 0 and fila[0][1] > 0.5 and exSeeds.sum() < 10 * (Cmax - Cmin) * (Lmax - Lmin) ** 2:
     fila = sorted(fila, key=lambda pixel: pixel[1], reverse=True)
     seedAtual = fila.pop(0)
     # print(len(fila))
@@ -285,7 +311,9 @@ while len(fila) != 0 and fila[0][1] > 0.5 and exSeeds.sum() < 10 * (Cmax - Cmin)
         if exSeeds[i] != 1 and lung[i] == 1:
             exSeeds[i] = 1
             # print(np.sum(exSeeds))
-            ua = afinidade(img[seedAtual], img[i], (mediaH, stdH), (mediaI, stdI), mode=0)
+            # ua = afinidade(img[seedAtual], img[i], (mediaH, stdH), (mediaI, stdI), mode=0)
+            ua = afinidade_batt(img, seedAtual, i, kernel, raio)
+            # print(ua)
             afinit[i] = ua
             uk = np.min([afinit[i], connect[seedAtual]])
             pathConnect[i] = uk
